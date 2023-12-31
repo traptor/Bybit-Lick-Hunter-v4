@@ -1444,91 +1444,104 @@ async function updateSettings() {
             }
             var minOrderSizes = JSON.parse(fs.readFileSync('min_order_sizes.json'));
             var settingsFile = JSON.parse(fs.readFileSync('settings.json'));
-            const url = "https://liquidation.report/api/lickhunter";
-            fetch(url)
-            .then(res => res.json())
-            .then((out) => {
-                //create settings.json file with multiple pairs
-                //save result to research.json
-                fs.writeFileSync('research.json', JSON.stringify(out, null, 4));
-                var settings = {};
-                settings["pairs"] = [];
-                for (var i = 0; i < out.data.length; i++) {
-                    //find index of pair in min_order_sizes.json "pair" key
-                    var index = minOrderSizes.findIndex(x => x.pair === out.data[i].name + "USDT");
-                    var settingsIndex = settingsFile.pairs.findIndex(x => x.symbol === out.data[i].name + "USDT");
-                    if (index === -1 || settingsIndex === -1 || out.data[i].name.includes("1000")) {
-                        //logIT("Skipping " + out.data[i].name + "USDT");
-                    }
-                    else {
-                        //set risk then update long_price and short_price
-                        var riskLevellong  = process.env.RISK_LEVEL_LONG;
-						var riskLevelshort = process.env.RISK_LEVEL_SHORT;
-						if (riskLevellong !== '0') {
-							var long_risk = out.data[i].long_price * (1 + riskLevellong / 100);
-						} 
-						else {
-						var long_risk = out.data[i].long_price;
-						}
-						if (riskLevelshort !== '0') {
-							var short_risk = out.data[i].short_price * (1 - riskLevelshort / 100);
-						} 
-						else {
-						var short_risk = out.data[i].short_price;
-                        }
-                        //updated settings.json file
-                        settingsFile.pairs[settingsIndex].long_price = long_risk;
-                        settingsFile.pairs[settingsIndex].short_price = short_risk;
-                    }
+
+            const url = 'https://liquidation-report.p.rapidapi.com/lickhunterpro';
+            const options = {
+                method: 'GET',
+                headers: {
+                    'X-RapidAPI-Key': 'ab4d468799msh63f831e90a6de8cp172898jsnf539304a890f',
+                    'X-RapidAPI-Host': 'liquidation-report.p.rapidapi.com'
                 }
-                fs.writeFileSync('settings.json', JSON.stringify(settingsFile, null, 4));
-            //if error load research.json file and update settings.json file
-            }).catch(
-                err => {
-                    logIT(chalk.red("Reaseach API down Attempting to load research.json file, if this continues please contact @Crypt0gnoe or @Atsutane in Discord"));
-                    var minOrderSizes = JSON.parse(fs.readFileSync('min_order_sizes.json'));
-                    var settingsFile = JSON.parse(fs.readFileSync('settings.json'));
-                    var researchFile = JSON.parse(fs.readFileSync('research.json'));
+            };
+
+            try {
+                const response = await fetch(url, options)                
+                .then(response => res.json())
+                .then((out) => {
+                    //create settings.json file with multiple pairs
+                    //save result to research.json
+                    fs.writeFileSync('research.json', JSON.stringify(out, null, 4));
                     var settings = {};
                     settings["pairs"] = [];
-                    for (var i = 0; i < researchFile.data.length; i++) {
+                    for (var i = 0; i < out.data.length; i++) {
                         //find index of pair in min_order_sizes.json "pair" key
-                        var index = minOrderSizes.findIndex(x => x.pair === researchFile.data[i].name + "USDT");
-                        var settingsIndex = settingsFile.pairs.findIndex(x => x.symbol === researchFile.data[i].name + "USDT");
-                        try{
-                            if (index === -1 || settingsIndex === 'undefined' || researchFile.data[i].name.includes("1000")) {
-                                //logIT("Skipping " + researchFile.data[i].name + "USDT");
-                            }
+                        var index = minOrderSizes.findIndex(x => x.pair === out.data[i].name + "USDT");
+                        var settingsIndex = settingsFile.pairs.findIndex(x => x.symbol === out.data[i].name + "USDT");
+                        if (index === -1 || settingsIndex === -1 || out.data[i].name.includes("1000")) {
+                            //logIT("Skipping " + out.data[i].name + "USDT");
+                        }
+                        else {
+                            //set risk then update long_price and short_price
+                            var riskLevellong  = process.env.RISK_LEVEL_LONG;
+                            var riskLevelshort = process.env.RISK_LEVEL_SHORT;
+                            if (riskLevellong !== '0') {
+                                var long_risk = out.data[i].long_price * (1 + riskLevellong / 100);
+                            } 
                             else {
-                                //set risk then update long_price and short_price
-                                var riskLevellong = process.env.RISK_LEVEL_LONG;
-								var riskLevelshort = process.env.RISK_LEVEL_SHORT;
-								if (riskLevellong !== '0') {
-									var long_risk = researchFile.data[i].long_price * (1 + riskLevellong / 100);
-								} 
-								else {
-									var long_risk = researchFile.data[i].long_price;
-								}
-								if (riskLevelshort !== '0') {
-									var short_risk = researchFile.data[i].short_price * (1 - riskLevelshort / 100);
-								} 
-								else {
-								var short_risk = researchFile.data[i].short_price;
-								}
-                                //updated settings.json file
-                                settingsFile.pairs[settingsIndex].long_price = long_risk;
-                                settingsFile.pairs[settingsIndex].short_price = short_risk;
+                            var long_risk = out.data[i].long_price;
                             }
+                            if (riskLevelshort !== '0') {
+                                var short_risk = out.data[i].short_price * (1 - riskLevelshort / 100);
+                            } 
+                            else {
+                            var short_risk = out.data[i].short_price;
+                            }
+                            //updated settings.json file
+                            settingsFile.pairs[settingsIndex].long_price = long_risk;
+                            settingsFile.pairs[settingsIndex].short_price = short_risk;
                         }
-                        catch(err){
-                            logIT("Error updating " + researchFile.data[i].name + "USDT, this is likely due to not having this pair active in your settings.json file");
-                        }
-
-
                     }
                     fs.writeFileSync('settings.json', JSON.stringify(settingsFile, null, 4));
-                }
-            );
+                //if error load research.json file and update settings.json file
+                }).catch(
+                    err => {
+                        logIT(chalk.red("Reaseach API down Attempting to load research.json file, if this continues please contact @Crypt0gnoe or @Atsutane in Discord"));
+                        var minOrderSizes = JSON.parse(fs.readFileSync('min_order_sizes.json'));
+                        var settingsFile = JSON.parse(fs.readFileSync('settings.json'));
+                        var researchFile = JSON.parse(fs.readFileSync('research.json'));
+                        var settings = {};
+                        settings["pairs"] = [];
+                        for (var i = 0; i < researchFile.data.length; i++) {
+                            //find index of pair in min_order_sizes.json "pair" key
+                            var index = minOrderSizes.findIndex(x => x.pair === researchFile.data[i].name + "USDT");
+                            var settingsIndex = settingsFile.pairs.findIndex(x => x.symbol === researchFile.data[i].name + "USDT");
+                            try{
+                                if (index === -1 || settingsIndex === 'undefined' || researchFile.data[i].name.includes("1000")) {
+                                    //logIT("Skipping " + researchFile.data[i].name + "USDT");
+                                }
+                                else {
+                                    //set risk then update long_price and short_price
+                                    var riskLevellong = process.env.RISK_LEVEL_LONG;
+                                    var riskLevelshort = process.env.RISK_LEVEL_SHORT;
+                                    if (riskLevellong !== '0') {
+                                        var long_risk = researchFile.data[i].long_price * (1 + riskLevellong / 100);
+                                    } 
+                                    else {
+                                        var long_risk = researchFile.data[i].long_price;
+                                    }
+                                    if (riskLevelshort !== '0') {
+                                        var short_risk = researchFile.data[i].short_price * (1 - riskLevelshort / 100);
+                                    } 
+                                    else {
+                                    var short_risk = researchFile.data[i].short_price;
+                                    }
+                                    //updated settings.json file
+                                    settingsFile.pairs[settingsIndex].long_price = long_risk;
+                                    settingsFile.pairs[settingsIndex].short_price = short_risk;
+                                }
+                            }
+                            catch(err){
+                                logIT("Error updating " + researchFile.data[i].name + "USDT, this is likely due to not having this pair active in your settings.json file");
+                            }
+
+
+                        }
+                        fs.writeFileSync('settings.json', JSON.stringify(settingsFile, null, 4));
+                    }
+                );
+            } catch (error) {
+                console.error(error);
+            }  
         }
     }
 
